@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Saída Escolar</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Estilos gerais da página */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e9f1f7; /* Azul claro */
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 450px;
+            text-align: center;
+            border-top: 5px solid #4A90E2; /* Azul mais forte para destacar */
+        }
+
+        h2 {
+            color: #4A90E2;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: block;
+            color: #4A90E2;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #4A90E2;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #5B9BD5;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            background-color: #F1C40F; /* Amarelo */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #F39C12; /* Amarelo escuro */
+        }
+
+        #resultado {
+            margin-top: 20px;
+            background-color: #F1F1F1;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        #resultado p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .buttons-container button {
+            margin: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Controle de Saída Escolar - Cem Maria Martins</h2>
+        <label for="ra">Digite o R.A do aluno:</label>
+        <input type="text" id="ra" required placeholder="Digite o R.A">
+        <button onclick="carregarArquivo()">Carregar Planilha</button>
+        <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="processarArquivo(event)">
+        <button onclick="buscarAluno()">Buscar</button>
+
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        let dadosPlanilha = [];
+
+        // Adiciona evento para o campo de entrada, ouvindo a tecla Enter
+        document.getElementById('ra').addEventListener('keydown', event => {
+            if (event.key === 'Enter') buscarAluno();
+        });
+
+        // Função para carregar a planilha
+        function carregarArquivo() {
+            document.getElementById('fileInput').click();
+        }
+
+        // Função para processar o arquivo da planilha
+        async function processarArquivo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const arrayBuffer = e.target.result;
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                dadosPlanilha = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+                alert("Planilha carregada com sucesso!");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Função para buscar o aluno
+        function buscarAluno() {
+            const ra = document.getElementById('ra').value.trim();
+            if (!ra) {
+                alert("Por favor, insira o R.A do aluno.");
+                return;
+            }
+
+            if (!dadosPlanilha.length) {
+                alert("Por favor, carregue a planilha primeiro.");
+                return;
+            }
+
+            const aluno = dadosPlanilha.find((linha) => linha[0] == ra);
+            if (aluno) {
+                const [ , nome, responsavel1, contato1, responsavel2, contato2 ] = aluno;
+
+                document.getElementById('resultado').innerHTML = `
+                    <p>Aluno: <strong>${nome}</strong></p>
+                    <p>Selecione o responsável que está retirando o aluno:</p>
+                    <div class="buttons-container">
+                        <button onclick="enviarMensagem('${responsavel1}', '${contato1}', '${responsavel2}', '${contato2}', '${nome}')">${responsavel1}</button>
+                        <button onclick="enviarMensagem('${responsavel2}', '${contato2}', '${responsavel1}', '${contato1}', '${nome}')">${responsavel2}</button>
+                    </div>
+                `;
+            } else {
+                alert("Aluno não encontrado.");
+            }
+        }
+
+        
+// Função para enviar a mensagem pelo WhatsApp no aplicativo de desktop
+function enviarMensagem(responsavelAtual, contatoAtual, outroResponsavel, contatoOutro, nomeAluno) {
+    const mensagem = `Olá ${outroResponsavel}, o aluno ${nomeAluno} foi retirado da escola por ${responsavelAtual}.`;
+    // Usando o esquema de URL 'whatsapp://' para abrir diretamente o aplicativo de desktop
+    const url = `whatsapp://send?phone=${contatoOutro}&text=${encodeURIComponent(mensagem)}`;
+    window.location.href = url;  // Mudança de window.open para window.location.href para tentar abrir o app
+        }
+    </script>
+</body>
+</html>
+
